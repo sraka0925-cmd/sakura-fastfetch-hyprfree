@@ -38,7 +38,7 @@ The installer copies the utility to `~/.local/bin/hyprfree` and a sample configu
 Then add this to `~/.config/hypr/hyprland.conf`:
 
 ```conf
-source = ~/.config/sakura-fastfetch-hyprfree/hyprland.conf
+source = ~/.config/hyprfree/hyprland.conf
 ```
 
 Reload the configuration (`hyprctl reload`) or restart Hyprland.
