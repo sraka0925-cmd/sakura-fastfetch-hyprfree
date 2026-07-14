@@ -81,7 +81,7 @@ Values passed to `move` and `resize` are relative. `place` and `size` use exact 
 
 ## Configuration
 
-Edytuj `~/.config/hyprfree/config`:
+Edit `~/.config/hyprfree/config`:
 
 ```bash
 MOVE_STEP=40
