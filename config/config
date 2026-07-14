@@ -1,0 +1,7 @@
+# Pixels used by the hyprland.conf keybindings.
+MOVE_STEP=40
+RESIZE_STEP=80
+
+# HyprFree will not resize a window below these values.
+MIN_WIDTH=160
+MIN_HEIGHT=120

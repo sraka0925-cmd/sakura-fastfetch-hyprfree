@@ -1,0 +1,121 @@
+#!/usr/bin/env bash
+# Freely move and resize the focused window in Hyprland.
+set -euo pipefail
+
+CONFIG_FILE="${XDG_CONFIG_HOME:-${HOME}/.config}/hyprfree/config"
+MOVE_STEP=40
+RESIZE_STEP=80
+MIN_WIDTH=160
+MIN_HEIGHT=120
+
+if [[ -r "$CONFIG_FILE" ]]; then
+  # This is the user's local configuration file and only contains Bash values.
+  # shellcheck disable=SC1090
+  source "$CONFIG_FILE"
+fi
+
+die() { printf 'HyprFree: %s\n' "$*" >&2; exit 1; }
+is_number() { [[ "$1" =~ ^-?[0-9]+$ ]]; }
+
+command -v hyprctl >/dev/null || die "hyprctl was not found; run this utility inside a Hyprland session."
+command -v jq >/dev/null || die "install jq first (for example: sudo pacman -S jq)."
+
+active_window() {
+  hyprctl activewindow -j 2>/dev/null
+}
+
+ensure_floating() {
+  local window
+  window="$(active_window)"
+  [[ -n "$window" && "$window" != "{}" ]] || die "no focused window."
+
+  if [[ "$(jq -r '.floating // false' <<<"$window")" != "true" ]]; then
+    hyprctl dispatch setfloating >/dev/null
+  fi
+}
+
+window_size() {
+  local axis="$1"
+  active_window | jq -r ".size[$axis] // 0"
+}
+
+move() {
+  is_number "$1" && is_number "$2" || die "move requires two numbers."
+  ensure_floating
+  hyprctl dispatch moveactive "$1 $2" >/dev/null
+}
+
+resize() {
+  local dx="$1" dy="$2" width height
+  is_number "$dx" && is_number "$dy" || die "resize requires two numbers."
+  ensure_floating
+  width=$(( $(window_size 0) + dx ))
+  height=$(( $(window_size 1) + dy ))
+  (( width < MIN_WIDTH )) && width=$MIN_WIDTH
+  (( height < MIN_HEIGHT )) && height=$MIN_HEIGHT
+  hyprctl dispatch resizewindowpixel "exact $width $height,activewindow" >/dev/null
+}
+
+place() {
+  is_number "$1" && is_number "$2" || die "place requires two numbers."
+  ensure_floating
+  hyprctl dispatch movewindowpixel "exact $1 $2,activewindow" >/dev/null
+}
+
+size() {
+  local width="$1" height="$2"
+  is_number "$width" && is_number "$height" || die "size requires two numbers."
+  (( width >= MIN_WIDTH )) || die "minimum width is $MIN_WIDTH px."
+  (( height >= MIN_HEIGHT )) || die "minimum height is $MIN_HEIGHT px."
+  ensure_floating
+  hyprctl dispatch resizewindowpixel "exact $width $height,activewindow" >/dev/null
+}
+
+nudge() {
+  case "$1" in
+    left)  move "-$MOVE_STEP" 0 ;;
+    right) move "$MOVE_STEP" 0 ;;
+    up)    move 0 "-$MOVE_STEP" ;;
+    down)  move 0 "$MOVE_STEP" ;;
+    *) die "nudge accepts: left, right, up, or down." ;;
+  esac
+}
+
+grow() {
+  case "$1" in
+    narrower) resize "-$RESIZE_STEP" 0 ;;
+    wider)    resize "$RESIZE_STEP" 0 ;;
+    taller)   resize 0 "$RESIZE_STEP" ;;
+    shorter)  resize 0 "-$RESIZE_STEP" ;;
+    *) die "grow accepts: narrower, wider, taller, or shorter." ;;
+  esac
+}
+
+usage() {
+  cat <<EOF
+Usage: hyprfree <command> [values]
+
+  move X Y       move by X/Y pixels
+  resize W H     resize by W/H pixels
+  place X Y      set X/Y position
+  size W H       set W×H size
+  nudge DIRECTION move by the configured step
+  grow TYPE      resize by the configured step
+  float          toggle floating mode
+  tile           restore tiling
+  help           show this help
+EOF
+}
+
+case "${1:-help}" in
+  move)   [[ $# -eq 3 ]] || die "use: hyprfree move X Y"; move "$2" "$3" ;;
+  resize) [[ $# -eq 3 ]] || die "use: hyprfree resize W H"; resize "$2" "$3" ;;
+  place)  [[ $# -eq 3 ]] || die "use: hyprfree place X Y"; place "$2" "$3" ;;
+  size)   [[ $# -eq 3 ]] || die "use: hyprfree size W H"; size "$2" "$3" ;;
+  nudge)  [[ $# -eq 2 ]] || die "use: hyprfree nudge DIRECTION"; nudge "$2" ;;
+  grow)   [[ $# -eq 2 ]] || die "use: hyprfree grow TYPE"; grow "$2" ;;
+  float)  hyprctl dispatch togglefloating >/dev/null ;;
+  tile)   [[ "$(active_window | jq -r '.floating // false')" == "true" ]] && hyprctl dispatch settiled >/dev/null ;;
+  help|-h|--help) usage ;;
+  *) die "unknown command: $1 (use: hyprfree help)" ;;
+esac

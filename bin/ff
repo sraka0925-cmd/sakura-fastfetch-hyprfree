@@ -1,0 +1,99 @@
+#!/usr/bin/env bash
+# ff — a private animated sakura wrapper for Fastfetch.
+set -euo pipefail
+
+CONFIG_FILE="${XDG_CONFIG_HOME:-${HOME}/.config}/fastfetch/ff-sakura.jsonc"
+FRAME_DELAY="${FF_FRAME_DELAY:-0.14}"
+FRAME_COUNT="${FF_FRAME_COUNT:-9}"
+
+command -v fastfetch >/dev/null || {
+  printf 'ff: install fastfetch first.\n' >&2
+  exit 1
+}
+
+tree_frame() {
+  local frame="$1"
+  case $(( frame % 3 )) in
+    0) cat <<'TREE'
+       ✿
+                  .-^^^^^^^^^-.
+        ✿       .'  ✿  ✿  ✿    '.
+               /  ✿  ✿  ✿  ✿     \
+      ✿       ;  ✿  ✿  ✿  ✿  ✿    ;
+               | ✿  ✿  ✿  ✿  ✿   |
+        ✿      ;  ✿  ✿  ✿  ✿  ✿  ;
+                \  ✿  ✿  ✿  ✿   /
+          ✿     '.    ✿  ✿     .'
+                   '-.______.-'
+                       ||||
+                       ||||       ✿
+                    ___||||___
+TREE
+      ;;
+    1) cat <<'TREE'
+                  .-^^^^^^^^^-.
+       ✿        .'  ✿  ✿  ✿    '.
+               /  ✿  ✿  ✿  ✿     \
+              ;  ✿  ✿  ✿  ✿  ✿    ;       ✿
+               | ✿  ✿  ✿  ✿  ✿   |
+              ;  ✿  ✿  ✿  ✿  ✿  ;
+        ✿       \  ✿  ✿  ✿  ✿   /
+                '.    ✿  ✿     .'      ✿
+                  '-.______.-'
+                      ||||
+                      ||||
+             ✿     ___||||___
+                         ✿
+TREE
+      ;;
+    2) cat <<'TREE'
+                  .-^^^^^^^^^-.
+                .'  ✿  ✿  ✿    '.
+    ✿         /  ✿  ✿  ✿  ✿     \
+              ;  ✿  ✿  ✿  ✿  ✿    ;
+               | ✿  ✿  ✿  ✿  ✿   |       ✿
+              ;  ✿  ✿  ✿  ✿  ✿  ;
+               \  ✿  ✿  ✿  ✿   /
+        ✿       '.    ✿  ✿     .'
+                  '-.______.-'
+                      ||||         ✿
+                      ||||
+                   ___||||___
+      ✿
+TREE
+      ;;
+  esac
+}
+
+render() {
+  local frame="$1" i total=0
+  local -a tree=()
+  mapfile -t tree < <(tree_frame "$frame")
+  (( ${#tree[@]} > ${#info[@]} )) && total=${#tree[@]} || total=${#info[@]}
+
+  printf '\033[H\033[2J'
+  for ((i = 0; i < total; i++)); do
+    printf '\033[38;5;212m%-42s\033[0m  %s\n' "${tree[$i]:-}" "${info[$i]:-}"
+  done
+}
+
+tmp_file="$(mktemp)"
+cleanup() {
+  rm -f "$tmp_file"
+  printf '\033[?25h'
+}
+trap cleanup EXIT INT TERM
+
+if [[ -f "$CONFIG_FILE" ]]; then
+  fastfetch --config "$CONFIG_FILE" >"$tmp_file"
+else
+  # Private fallback module list: no localip/publicip/wifi/dns/netio.
+  fastfetch --logo none --structure 'Title:Separator:OS:Kernel:Uptime:Packages:Shell:DE:WM:Terminal:CPU:GPU:Memory:Disk' >"$tmp_file"
+fi
+mapfile -t info <"$tmp_file"
+
+printf '\033[?25l'
+for ((frame = 0; frame < FRAME_COUNT; frame++)); do
+  render "$frame"
+  sleep "$FRAME_DELAY"
+done
