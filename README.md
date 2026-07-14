@@ -113,3 +113,4 @@ Hyprland may still enforce a minimum size declared by an application. HyprFree r
 ## License
 
 MIT — see [LICENSE](LICENSE).
+##Yeah anyways thx if you stopped by
