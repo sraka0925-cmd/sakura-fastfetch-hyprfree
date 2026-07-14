@@ -28,7 +28,7 @@ sudo pacman -S jq
 ## Installation
 
 ```bash
-git clone https://github.com/TWOJ_LOGIN/hyprfree.git
+git clone https://github.com/sraka0925-cmd/hyprfree.git
 cd hyprfree
 bash install.sh
 ```
