@@ -29,7 +29,7 @@ sudo pacman -S jq
 
 ```bash
 git clone https://github.com/sraka0925-cmd/sakura-fastfetch-hyprfree.git
-cd hyprfree
+cd sakura-fastfetch-hyprfree
 bash install.sh
 ```
 
@@ -38,7 +38,7 @@ The installer copies the utility to `~/.local/bin/hyprfree` and a sample configu
 Then add this to `~/.config/hypr/hyprland.conf`:
 
 ```conf
-source = ~/.config/hyprfree/hyprland.conf
+source = ~/.config/sakura-fastfetch-hyprfree/hyprland.conf
 ```
 
 Reload the configuration (`hyprctl reload`) or restart Hyprland.
